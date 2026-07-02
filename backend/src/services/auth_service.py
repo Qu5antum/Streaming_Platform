@@ -23,12 +23,12 @@ class AuthService:
         self.jwt_handler = jwt_handler
 
     async def auth_user(self, credents: OAuth2PasswordRequestForm) -> dict:
-        user = await self.user_repo.get_user_with_email(email=credents.username)
+        user = await self.user_repo.get_user_with_username(username=credents.username)
 
         if not user:
             logger.warning(
                 "User not found",
-                extra={"email": credents.username}
+                extra={"username": credents.username}
             )
             raise UserNotFoundException("User not found.")
  
@@ -79,14 +79,14 @@ class AuthService:
                 )
                 raise UnauthorizedException("Invalid token type.")
             
-            user_email = payload.get("sub")
+            username = payload.get("sub")
 
-            user = await self.user_repo.get_user_with_email(user_email)
+            user = await self.user_repo.get_user_with_username(username=username)
 
             if not user:
                 logger.warning(
                     "User not found",
-                    extra={"email": user_email}
+                    extra={"username": username}
                 )
                 raise UserNotFoundException("User not found.")
             
@@ -126,15 +126,15 @@ class AuthService:
             raise UnauthorizedException("Token expired.")
     
     async def add_new_user(self, user: UserCreate) -> dict:
-        
-        existing_user = await self.user_repo.get_user_with_email(email=user.email)
+        existing_user= await self.user_repo.get_user_with_username(username=user.username)
 
         if existing_user:
             logger.warning(
                 "User already exists",
-                extra={"email": user.email}
+                extra={"username": user.username}
             )
-            raise UserAlreadyExists("Пользователь уже существует.")
+            raise UserAlreadyExists("The user already exists.")
+
         
         hashed_password = hash_password(user.password)
         
@@ -151,13 +151,13 @@ class AuthService:
             logger.error(
                 "Database insert error",
                 exc_info=True,
-                extra={"email": user.email}
+                extra={"username": user.username}
             )
             raise DatabaseException("DB ERROR!")
         
         logger.info(
             "User inserted in db",
-            extra={"email": str(user.email)}
+            extra={"username": str(user.username)}
         )
         
-        return {"detail": "Пользователь успешно создан."}       
+        return {"detail": "The user has been successfully registered"}       
