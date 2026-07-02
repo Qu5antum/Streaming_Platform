@@ -6,7 +6,8 @@ import logging
 from src.middleware.logging_middleware import logging_middleware
 from src.core.logging import setup_logging
 from src.exception_handlers.base_exception import BaseAppException
-from src.api.endpoints.auth_endpoint import user_route
+from src.api.endpoints.auth_endpoint import auth_route
+from src.api.endpoints.user_endpoint import user_route
 from src.api.endpoints.category_endpoint import category_route
 from src.core.config import settings
 
@@ -42,6 +43,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth_route)
 app.include_router(user_route)
 app.include_router(category_route)
 
@@ -49,3 +51,4 @@ app.include_router(category_route)
 @app.get("/_info", status_code=200)
 async def info():
     return {"app_name": settings.APP_NAME, "debug": settings.debug} 
+

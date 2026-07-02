@@ -57,3 +57,10 @@ class UserOut(UserBase):
     
     class Config:
         from_attributes = True
+
+    
+class UserUpdate(BaseModel):
+    username: str | None = None
+    email: str | None = None
+    avatar_url: str | None = None
+    bio: str | None = None

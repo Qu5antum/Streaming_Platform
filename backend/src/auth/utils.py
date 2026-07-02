@@ -1,7 +1,8 @@
 from passlib.hash import argon2
+from pydantic import SecretStr
 
-def hash_password(password: str):
-    hashed_password = argon2.hash(password)
+def hash_password(password: SecretStr):
+    hashed_password = argon2.hash(password.get_secret_value())
     return hashed_password
 
 def verify_password(password_in: str, hashed_password):

@@ -39,6 +39,6 @@ class CategoryService:
     async def get_categories(self) -> list[CategoryOut]:
         categories = await self.category_repo.get_all()
 
-        logger.info("Successful responce category")
+        logger.info("Successful response category")
 
         return categories

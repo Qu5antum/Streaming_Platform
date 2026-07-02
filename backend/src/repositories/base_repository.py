@@ -42,6 +42,13 @@ class BaseRepository(AbstractRepository):
         obj = await self.session.get(self.model, id)
 
         return obj
+    
+    async def get_obj(self, id: UUID):
+        obj = await self.session.execute(
+            select(self.model).where(self.model.id == id)
+        )
+
+        return obj
      
     async def get_all(self):
         result = await self.session.execute(select(self.model))
