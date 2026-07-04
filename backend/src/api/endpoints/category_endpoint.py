@@ -5,6 +5,7 @@ from src.database.models import User, UserRole
 from src.api.dependencies.require_role_dependency import require_roles
 from src.services.category_service import CategoryService
 from src.api.schemas.category_schema import CategoryCreate, CategoryOut
+from src.redis.redis_service import RedisService
 
 
 category_route = APIRouter(
@@ -12,9 +13,11 @@ category_route = APIRouter(
     tags=['Category']
 )
 
+redis_service = RedisService()
+
 
 async def get_category_service(session: AsyncSession = Depends(get_session)):
-    return CategoryService(session=session)
+    return CategoryService(session=session, redis_service=redis_service)
 
 
 @category_route.post("/admin/category/create", response_model=CategoryOut, status_code=201)
