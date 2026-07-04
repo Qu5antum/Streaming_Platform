@@ -9,6 +9,7 @@ from src.exception_handlers.base_exception import BaseAppException
 from src.api.endpoints.auth_endpoint import auth_route
 from src.api.endpoints.user_endpoint import user_route
 from src.api.endpoints.category_endpoint import category_route
+from src.api.endpoints.stream_endpoint import stream_route
 from src.core.config import settings
 
 setup_logging()
@@ -46,6 +47,7 @@ app.add_middleware(
 app.include_router(auth_route)
 app.include_router(user_route)
 app.include_router(category_route)
+app.include_router(stream_route)
 
 
 @app.get("/_info", status_code=200)

@@ -161,7 +161,6 @@ class Clip(Base):
     )
 
 
-
 class Donation(Base):
     __tablename__ = 'donations'
 

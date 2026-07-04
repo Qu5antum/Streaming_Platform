@@ -19,6 +19,7 @@ redis_service = RedisService()
 async def get_user_service(session: AsyncSession = Depends(get_session)):
     return UserService(session=session, redis_service=redis_service)
 
+
 @user_route.get("/user/profile/me", response_model=UserOut, status_code=200)
 async def get_user_profile(
     user: User = Depends(require_roles(UserRole.ADMIN, UserRole.USER)),
@@ -27,12 +28,21 @@ async def get_user_profile(
     return await user_service.get_user_profile(user=user)
 
 
-@user_route.get("/user/all", status_code=200)
+@user_route.get("admin/user/all", status_code=200)
 async def get_all_users(
     user: User = Depends(require_roles(UserRole.ADMIN)),
     user_service: UserService = Depends(get_user_service)
 ):
     return await user_service.get_users()
+
+
+@user_route.get("/user/search", response_model=list[UserOut], status_code=200)
+async def search_user(
+    username: str,
+    user: User = Depends(require_roles(UserRole.ADMIN, UserRole.USER)),
+    user_service: UserService = Depends(get_user_service)
+):
+    return await user_service.search_user(username=username)
 
 
 @user_route.put("/user/profile/me/update", status_code=200)
@@ -44,7 +54,7 @@ async def profile_update(
     return await user_service.update_profile(user=user, user_update=user_update)
 
 
-@user_route.delete("/user/{user_id}/delete", status_code=200)
+@user_route.delete("admin/user/{user_id}/delete", status_code=200)
 async def delete_user(
     user_id: UUID,
     user: User = Depends(require_roles(UserRole.ADMIN)),

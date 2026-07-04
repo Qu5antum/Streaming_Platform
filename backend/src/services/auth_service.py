@@ -147,7 +147,10 @@ class AuthService:
                 bio=user.bio,
                 role=user.role
             )
+
         except IntegrityError:
+            await self.session.rollback()
+
             logger.error(
                 "Database insert error",
                 exc_info=True,

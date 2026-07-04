@@ -31,7 +31,11 @@ class CategoryService:
                 description=category.description
             )
 
+            await self.session.commit()
+            await self.session.refresh(new_category)
         except IntegrityError:
+            await self.session.rollback()
+
             logger.error(
                 "Database insert error",
                 exc_info=True,
@@ -41,7 +45,6 @@ class CategoryService:
         
         logger.info(
             "New Category Created",
-            extra={"title": category.title}
         )
 
         return serialize_category(new_category)
@@ -59,7 +62,7 @@ class CategoryService:
         
         categories = await self.category_repo.get_all()
 
-        logger.info("Successful response category")
+        logger.info("Successful response category",)
 
         serialized = [
             serialize_category(category)
