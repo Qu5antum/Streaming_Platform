@@ -1,5 +1,5 @@
 import logging
-import asyncio
+import os
 from typing import Optional, Any
 import redis.asyncio as aioredis
 from redis.exceptions import RedisError
@@ -19,10 +19,10 @@ class RedisService:
             cls._instance._client = None
         return cls._instance
 
-    def __init__(self, redis_url: str = "redis://localhost:6379/0"):
+    def __init__(self, redis_url: Optional[str] = None):
         # Initialize attributes only once
         if not hasattr(self, "redis_url"):
-            self.redis_url = redis_url
+            self.redis_url = redis_url or os.getenv("REDIS_URL", "redis://redis:6379/0")
 
     def initialize(self) -> None:
         """

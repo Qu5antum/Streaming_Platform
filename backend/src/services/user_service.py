@@ -46,18 +46,79 @@ class UserService:
 
         return user_schema
     
-    # TODO Implement redis service
     async def get_users(self) -> list[UserOut]:
+        cached_data = await self.redis.get("users:all")
+
+        if cached_data:
+            logger.info("Users fetched from Redis cache")
+
+            return [
+                UserOut.model_validate(item)
+                for item in json.loads(cached_data)
+            ]
+        
         users = await self.user_repo.get_all()
 
         logger.info("Successfully all users response")
 
-        return users
-    
-    async def search_user(self, username: str) -> list[dict[Any, UserOut]]:
-        users = await self.user_repo.search_user_by_username(username=username)
+        serialized = [
+            UserOut.model_validate(user).model_dump(mode="json")
+            for user in users
+        ]
 
-        return users
+        await self.redis.set(
+            "users:all",
+            json.dumps(serialized),
+            expire_seconds=300
+        )
+
+        return [
+            UserOut.model_validate(category)
+            for category in users
+        ]
+    
+    async def search_user(self, username: str, user: User) -> list[UserOut]:
+        cache_key = f"users:search:{user.role}:{username.lower()}"
+
+        cached_data = await self.redis.get(cache_key)
+
+        if cached_data:
+            logger.info(
+                "Search users fetched from Redis cache",
+                extra={"username": username}
+            )
+
+            return [
+                UserOut.model_validate(item)
+                for item in json.loads(cached_data)
+            ]
+        users = await self.user_repo.search_user_by_username(username=username, user=user)
+
+        logger.info(
+            "Successfully searched users",
+            extra={"username": username}
+        )
+
+        serialized = [
+            UserOut.model_validate(user).model_dump(mode="json")
+            for user in users
+        ]
+
+        await self.redis.set(
+            cache_key,
+            json.dumps(serialized),
+            expire_seconds=300
+        )
+
+        logger.info(
+            "Search users cached",
+            extra={"username": username}
+        )
+
+        return [
+            UserOut.model_validate(user)
+            for user in users
+        ]
     
     async def update_profile(self, user: User, user_update: UserUpdate) -> dict[str, str]:
         try:

@@ -1,6 +1,7 @@
 import logging
 from sqlalchemy.exc import IntegrityError
 import json
+from uuid import UUID
 
 from src.database.db import AsyncSession
 from src.repositories.category_repository import CategoryRepository
@@ -9,13 +10,6 @@ from src.exception_handlers.db_exception import DatabaseException
 from src.redis.redis_service import RedisService
 
 logger = logging.getLogger("category")
-
-
-def serialize_category(category) -> dict:
-    if hasattr(CategoryOut, "model_validate"):
-        return CategoryOut.model_validate(category).model_dump(mode="json")
-
-    return CategoryOut.model_validate(category).model_dump()
 
 
 class CategoryService:
@@ -47,13 +41,13 @@ class CategoryService:
             "New Category Created",
         )
 
-        return serialize_category(new_category)
+        return new_category
     
     async def get_categories(self) -> list[CategoryOut]:
         cached_data = await self.redis.get("categories:all")
 
         if cached_data: 
-            logger.info("Categories fedched from Redis cache")
+            logger.info("Categories fetched from Redis cache")
 
             return [
                 CategoryOut.model_validate(item)
@@ -65,7 +59,7 @@ class CategoryService:
         logger.info("Successful response category",)
 
         serialized = [
-            serialize_category(category)
+            CategoryOut.model_validate(category).model_dump(mode="json")
             for category in categories
         ]
 
@@ -81,3 +75,16 @@ class CategoryService:
             CategoryOut.model_validate(category)
             for category in categories
         ]
+    
+    async def delete_category(self, category_id: UUID) -> dict[str, str]:
+        delete_category = await self.category_repo.delete(id=category_id)
+
+        if not delete_category:
+            logger.warning(
+                "Category not deleted",
+                extra={"category_id": category_id}
+            )
+
+            raise DatabaseException("Category not deleted, Database error")
+        
+        return {"detail": "Category deleted"}

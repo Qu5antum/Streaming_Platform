@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends
+from uuid import UUID
 
 from src.database.db import AsyncSession, get_session
 from src.database.models import User, UserRole
@@ -35,3 +36,12 @@ async def get_categories(
     category_service: CategoryService = Depends(get_category_service)
 ):
     return await category_service.get_categories()
+
+
+@category_route.delete("/admin/category/{category_id}/delete", status_code=200)
+async def delete_category(
+    category_id: UUID,
+    user: User = Depends(require_roles(UserRole.ADMIN)),
+    category_service: CategoryService = Depends(get_category_service)
+):
+    return await category_service.delete_category(category_id=category_id)

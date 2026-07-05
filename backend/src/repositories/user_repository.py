@@ -4,7 +4,7 @@ from typing import Optional, Any
 from uuid import UUID
 
 from .base_repository import BaseRepository
-from src.database.models import User, Stream, Status
+from src.database.models import User, Stream, Status, UserRole
 
 
 class UserRepository(BaseRepository):
@@ -17,13 +17,13 @@ class UserRepository(BaseRepository):
 
         return result.scalar_one_or_none()
     
-    async def search_user_by_username(self, username: str) -> list[dict[Any, User]]:
-        subquery = select(self.model.id).where(self.model.role == 'admin').subquery()
-
+    async def search_user_by_username(self, username: str, user: User) -> list[dict[Any, User]]:
         query = select(self.model).where(
             self.model.username.ilike(f'%{username}%'),
-            self.model.id.notin_(subquery)
         )
+
+        if user.role == UserRole.USER:
+            query = query.where(self.model.role == UserRole.USER, self.model.is_active == True)
         
         result = await self.session.execute(query)
 
