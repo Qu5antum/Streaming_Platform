@@ -17,3 +17,21 @@ class StreamIsEndedException(BaseAppException):
     """Ошибка если стрим окончен"""
     def __init__(self, message: str):
         super().__init__(message, status_code=400)
+
+
+class StreamIsOfflineException(BaseAppException):
+    """Ошибка если стрим офлайн"""
+    def __init__(self, message: str):
+        super().__init__(message, status_code=400)
+
+
+class StreamNotBelongToUser(BaseAppException):
+    """Ошибка если стрим не принадлежит ползователю"""
+    def __init__(self, message: str):
+        super().__init__(message, status_code=403)
+
+
+class InvalidStreamStateException(BaseAppException):
+    """Ошибка если статус стрима неверный"""
+    def __init__(self, message: str):
+        super().__init__(message, status_code=400)

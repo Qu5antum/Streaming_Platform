@@ -10,12 +10,24 @@ class StreamCreate(BaseModel):
     category_ids: list[UUID]
 
 
-class StreamOut(BaseModel):
+class StreamOutBase(BaseModel):
     id: UUID
     title: str
     description: str
     status: Status
-    stream_key: str
     streamer_id: UUID
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class StreamOut(StreamOutBase):
+    stream_key: str
+
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+
+
+class PublishStream(BaseModel):
+    stream_key: str

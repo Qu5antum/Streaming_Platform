@@ -87,4 +87,8 @@ class CategoryService:
 
             raise DatabaseException("Category not deleted, Database error")
         
+        logger.info(
+            "Category successfully deleted"
+        )
+        
         return {"detail": "Category deleted"}

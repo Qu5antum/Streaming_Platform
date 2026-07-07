@@ -114,8 +114,11 @@ class Stream(Base):
         nullable=True
     )
 
-    ended_at: Mapped[Optional[datetime.datetime]] = mapped_column(nullable=True)
-
+    ended_at: Mapped[Optional[datetime.datetime]] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True
+    )
+    
     categories: Mapped[list["Category"]] = relationship(
         secondary=stream_categories,
         back_populates="streams"

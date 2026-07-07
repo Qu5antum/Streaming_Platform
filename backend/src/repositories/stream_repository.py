@@ -30,5 +30,25 @@ class StreamRepository(BaseRepository):
         result = await self.session.execute(query)
 
         return result.scalars().all()
+    
+    async def get_stream_by_key(self, stream_key: str):
+        result = await self.session.execute(
+            select(self.model)
+            .where(
+                self.model.stream_key == stream_key,
+                self.model.status == Status.OFFLINE
+
+            )
+        )
+
+        return result.scalar_one_or_none()
+    
+    async def get_user_streams(self, user: User):
+        result = await self.session.execute(
+            select(self.model)
+            .where(self.model.streamer_id == user.id)
+        )
+
+        return result.scalars().all()   
 
     

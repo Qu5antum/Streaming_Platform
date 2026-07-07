@@ -2,14 +2,15 @@ import logging
 from sqlalchemy.exc import IntegrityError
 from uuid import UUID
 import json
+import datetime
 
 from src.database.db import AsyncSession
 from src.database.models import User, Status
 from src.repositories.stream_repository import StreamRepository
 from src.repositories.user_repository import UserRepository
 from src.repositories.category_repository import CategoryRepository
-from src.api.schemas.stream_schema import StreamCreate, StreamOut
-from src.exception_handlers.stream_exception import StreamIsLiveExceptoin, StreamNotFoundException, StreamIsEndedException
+from src.api.schemas.stream_schema import StreamCreate, StreamOut, PublishStream, StreamOutBase
+from src.exception_handlers.stream_exception import StreamIsLiveExceptoin, StreamNotFoundException, StreamIsEndedException, StreamNotBelongToUser, StreamIsOfflineException, InvalidStreamStateException
 from src.exception_handlers.category_exception import SomeCategoryNotFound, CategoryNotFoundException
 from src.exception_handlers.db_exception import DatabaseException
 from src.utils.secret_key import generate_stream_key
@@ -76,7 +77,7 @@ class StreamService:
         
         return new_stream
     
-    async def find_stream_by_category(self, category_id: UUID, user: User) -> list[StreamOut]:
+    async def find_stream_by_category(self, category_id: UUID, user: User) -> list[StreamOutBase]:
         cached_data = await self.redis.get("streams:all")
 
         if cached_data:
@@ -117,7 +118,7 @@ class StreamService:
             for stream in streams
         ]
     
-    async def stream_detail(self, stream_id: UUID) -> StreamOut:
+    async def stream_detail(self, stream_id: UUID) -> StreamOutBase:
         stream = await self.stream_repo.get(id=stream_id)
 
         if not stream:
@@ -138,11 +139,131 @@ class StreamService:
         
         return stream
 
+    async def start_stream_by_stream_key(self, stream_publish: PublishStream, user: User) -> StreamOut:
+        # TODO add stream metric and notification for followers with redis
+        stream = await self.stream_repo.get_stream_by_key(stream_key=stream_publish.stream_key)
 
-    # TODO make update stream method
-    # TODO make end stream method
+        if not stream:
+            logger.warning(
+                "Stream not found by key",
+                extra={"stream_key": stream_publish.stream_key}
+            )
 
+            raise StreamNotFoundException("Stream not found")
+        
+        if stream.streamer_id != user.id:
+            logger.warning(
+                "This stream does not belong to this user",
+                extra={
+                    "stream_key": stream_publish.stream_key,
+                    "user_id": str(user.id)
+                }
+            )
+
+            raise StreamNotBelongToUser("Stream not belong to user")
+        
+        if stream.status != Status.OFFLINE:
+            logger.warning(
+                "Only offline stream can go live",
+                extra={"stream_id": stream.id}
+            )
+            
+            raise InvalidStreamStateException("Only offline streams can be started")
+
+        stream.status = Status.LIVE
+        stream.started_at = datetime.datetime.now(datetime.UTC)
+
+        await self.session.commit()
+        await self.session.refresh(stream)
+
+        logger.info(
+            "Stream is started",
+            extra={"stream_id": stream.id}
+        )
+
+        return stream
+
+    async def stop_stream(self, stream_id: UUID, user: User) -> dict[str, str]:
+        stream = await self.stream_repo.get(id=stream_id)
+
+        if not stream:
+            logger.warning(
+                "Stream not found",
+                extra={"stream_id": stream_id}
+            )
+
+            raise StreamNotFoundException("Stream not found")
+        
+        if stream.streamer_id != user.id:
+            logger.warning(
+                "This stream does not belong to this user",
+                extra={
+                    "stream_id": stream_id,
+                    "user_id": str(user.id)
+                }
+            )
+
+            raise StreamNotBelongToUser("Stream not belong to user")
+        
+        if stream.status != Status.LIVE:
+            logger.warning(
+                "Stream is not live, Stream cannot be ended",
+                extra={"stream_id": stream_id}
+            )
+
+            raise InvalidStreamStateException("Stream must be live to end stream")
+        
+        stream.status = Status.ENDED
+        stream.ended_at = datetime.datetime.now(datetime.UTC)
+
+        await self.session.commit()
+        await self.session.refresh(stream)
+
+        return {"detail": "Stream successfully ended"}
     
+    async def delete_stream_by_id(self, stream_id: UUID) -> dict[str, str]:
+        stream = await self.stream_repo.get(id=stream_id)
+
+        if not stream:
+            logger.warning(
+                "Stream not found",
+                extra={"stream_id": str(stream_id)}
+            )
+
+            raise StreamNotFoundException("Stream not found")
+        
+        try:
+            await self.stream_repo.delete(id=stream_id)
+        except Exception:
+            logger.error(
+                "Failed to delete stream",
+                exc_info=True,
+                extra={"stream_id": str(stream_id)}
+            )
+
+            raise DatabaseException("Stream not deleted, Database Error")
+
+        logger.info(
+            "Stream successfully deleted",
+            extra={"stream_id": str(stream_id)}
+        )
+
+        return {"detail": "Stream successfully deleted"}
+    
+    # TODO implement redis service
+    async def get_my_streams(self, user: User) -> list[StreamOut]:
+        streams = await self.stream_repo.get_user_streams(user=user)
+
+        logger.info(
+            "Successful stream response"
+        )
+
+        return streams
+
+
+
+
+        
         
 
 
