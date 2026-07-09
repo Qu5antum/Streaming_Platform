@@ -9,6 +9,7 @@ from src.database.models import User, Status
 from src.repositories.stream_repository import StreamRepository
 from src.repositories.user_repository import UserRepository
 from src.repositories.category_repository import CategoryRepository
+from src.repositories.stream_metric_repository import StreamMetricRepository
 from src.api.schemas.stream_schema import StreamCreate, StreamOut, PublishStream, StreamOutBase
 from src.exception_handlers.stream_exception import StreamIsLiveExceptoin, StreamNotFoundException, StreamIsEndedException, StreamNotBelongToUser, StreamIsOfflineException, InvalidStreamStateException
 from src.exception_handlers.category_exception import SomeCategoryNotFound, CategoryNotFoundException
@@ -25,6 +26,7 @@ class StreamService:
         self.stream_repo = StreamRepository(session=self.session)
         self.user_repo = UserRepository(session=self.session)
         self.category_repo = CategoryRepository(session=self.session)
+        self.stream_metric_repo = StreamMetricRepository(session=self.session)
         self.redis = redis_service
 
     async def create_stream(self, user: User, stream: StreamCreate) -> StreamOut:
@@ -173,6 +175,10 @@ class StreamService:
         stream.status = Status.LIVE
         stream.started_at = datetime.datetime.now(datetime.UTC)
 
+        await self.stream_metric_repo.create(
+            stream_id = stream.id
+        )
+
         await self.session.commit()
         await self.session.refresh(stream)
 
@@ -250,15 +256,38 @@ class StreamService:
 
         return {"detail": "Stream successfully deleted"}
     
-    # TODO implement redis service
     async def get_my_streams(self, user: User) -> list[StreamOut]:
+        cached_data = await self.redis.get("streams:all")
+
+        if cached_data:
+            logger.info("Streams fetched from Redis cache")
+
+            return [
+                StreamOut.model_validate(item)
+                for item in json.loads(cached_data)
+            ]
+        
         streams = await self.stream_repo.get_user_streams(user=user)
 
-        logger.info(
-            "Successful stream response"
+        logger.info("Successful stream response")
+        
+        serialized = [
+            StreamOut.model_validate(stream).model_dump(mode="json")
+            for stream in streams
+        ]
+
+        await self.redis.set(
+            "streams:all",
+            json.dumps(serialized),
+            expire_seconds=300
         )
 
-        return streams
+        logger.info("Streams cached in redis")
+
+        return [
+            StreamOut.model_validate(stream)
+            for stream in streams
+        ]
 
 
 

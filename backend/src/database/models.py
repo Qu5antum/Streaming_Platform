@@ -78,6 +78,10 @@ class User(Base):
         back_populates="followers"
     )
 
+    messages: Mapped[list["StreamMessage"]] = relationship(
+        back_populates="sender"
+    )
+
 
 stream_categories = Table(
     "stream_categories",
@@ -146,6 +150,11 @@ class Stream(Base):
         uselist=False
     )
 
+    messages: Mapped[list["StreamMessage"]] = relationship(
+        back_populates="stream",
+        cascade="all, delete-orphan"
+    )
+
 
 class Clip(Base):
     __tablename__ = 'clips'
@@ -191,10 +200,12 @@ class StreamMetric(Base):
         back_populates="metrics"
     )
     
-    total_views: Mapped[int]
-    total_messages: Mapped[int]
-    peak_viewers: Mapped[int]
-    avg_watch_time :Mapped[int]
+    total_views: Mapped[int] = mapped_column(default=0)
+    total_messages: Mapped[int] = mapped_column(default=0)
+    total_donations: Mapped[int] = mapped_column(default=0)
+    donation_amount: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=0)
+    peak_viewers: Mapped[int] = mapped_column(default=0)
+    avg_watch_time: Mapped[int] = mapped_column(default=0)
 
 
 class Follower(Base):
@@ -219,3 +230,21 @@ class Follower(Base):
         DateTime(timezone=True),
         default=lambda: datetime.datetime.now(datetime.UTC)
     )
+
+
+class StreamMessage(Base):
+    __tablename__ = 'stream_messages'
+
+    stream_id: Mapped[uuid.UUID] = mapped_column(ForeignKey('streams.id'), index=True)
+
+    stream: Mapped["Stream"] = relationship(
+        back_populates="messages"
+    )
+
+    sender_id: Mapped[uuid.UUID] = mapped_column(ForeignKey('users.id'), index=True)
+
+    sender: Mapped["User"] = relationship(
+        back_populates="messages"
+    )
+
+    content: Mapped[str] = mapped_column(nullable=False)
