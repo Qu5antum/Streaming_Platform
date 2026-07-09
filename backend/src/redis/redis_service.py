@@ -79,3 +79,18 @@ class RedisService:
             await self._client.aclose()
             logger.info("Async Redis client pool closed gracefully.")
             self._client = None
+
+    async def incr(self, key: str) -> int:
+        return await self._client.incr(key)
+    
+    async def decr(self, key: str) -> int:
+        return await self._client.decr(key)
+    
+    async def exists(self, key: str) -> bool:
+        return bool(await self._client.exists(key))
+    
+    async def incrbyfloat(self, key: str, amount: float) -> float:
+        return await self._client.incrbyfloat(key, amount)
+    
+    async def incrby(self, key: str, amount: int) -> int:
+        return await self._client.incrby(key, amount)

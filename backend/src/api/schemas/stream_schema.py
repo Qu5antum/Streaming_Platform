@@ -23,7 +23,6 @@ class StreamOutBase(BaseModel):
 class StreamOut(StreamOutBase):
     stream_key: str
 
-
     model_config = ConfigDict(from_attributes=True)
 
 
