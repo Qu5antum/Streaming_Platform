@@ -16,6 +16,7 @@ from src.exception_handlers.category_exception import SomeCategoryNotFound, Cate
 from src.exception_handlers.db_exception import DatabaseException
 from src.utils.secret_key import generate_stream_key
 from src.redis.redis_service import RedisService
+from .stream_metric_serivce import StreamMetricService
 
 logger = logging.getLogger("category")
 
@@ -28,6 +29,8 @@ class StreamService:
         self.category_repo = CategoryRepository(session=self.session)
         self.stream_metric_repo = StreamMetricRepository(session=self.session)
         self.redis = redis_service
+        self.stream_metric_serivce = StreamMetricService(session=self.session)
+
 
     async def create_stream(self, user: User, stream: StreamCreate) -> StreamOut:
         user_stream = await self.user_repo.get_user_stream(user_id=user.id)
@@ -131,14 +134,6 @@ class StreamService:
 
             raise StreamNotFoundException("Live stream not found")
         
-        if stream.status == Status.ENDED:
-            logger.warning(
-                "Stream is ended",
-                extra={"stream_id": str(stream.id)}
-            )
-
-            raise StreamIsEndedException("Stream is ended")
-        
         return stream
 
     async def start_stream_by_stream_key(self, stream_publish: PublishStream, user: User) -> StreamOut:
@@ -222,6 +217,7 @@ class StreamService:
         stream.status = Status.ENDED
         stream.ended_at = datetime.datetime.now(datetime.UTC)
 
+        await self.stream_metric_serivce.persist_metric(stream_id=stream.id)
         await self.session.commit()
         await self.session.refresh(stream)
 

@@ -1,9 +1,13 @@
 from uuid import UUID
 from decimal import Decimal
+import logging
 
 from src.database.db import AsyncSession
 from src.repositories.stream_metric_repository import StreamMetricRepository
 from src.redis.redis_service import RedisService
+from src.exception_handlers.stream_exception import StreamMetricNotFoundException
+
+logger = logging.getLogger("stream_metric")
 
 
 class StreamMetricService:
@@ -73,3 +77,65 @@ class StreamMetricService:
 
         return round(total_time / total_sessions, 2)
 
+    async def persist_metric(self, stream_id: UUID) -> None: 
+        metric = await self.stream_metric_repo.get_stream_metric_by_stream_id(stream_id=stream_id)
+
+        if not metric:
+            logger.warning(
+                "Stream metric not found",
+                extra={"stream_id": stream_id}
+            )
+
+            raise StreamMetricNotFoundException("Stream metric not found")
+        
+        metric.total_views = int(await self.redis.get(f"stream:{stream_id}:total_views") or 0)
+        metric.total_messages = int(await self.redis.get(f"stream:{stream_id}:messages") or 0)
+        metric.total_donations = int(await self.redis.get(f"stream:{stream_id}:total_donations") or 0)
+
+        metric.donation_amount = Decimal(
+            await self.redis.get(f"stream:{stream_id}:donation_amount") or "0"
+        )
+
+        metric.peak_viewers = int(
+            await self.redis.get(f"stream:{stream_id}:peak_viewers") or 0
+        )
+
+        metric.avg_watch_time = int(
+            await self.get_avg_watch_time(stream_id)
+        )
+
+        logger.info(
+            "Stream metric inserted to database",
+            extra={"stream_id": stream_id}
+        )
+
+        await self.session.commit()
+
+        keys = [
+            f"stream:{stream_id}:current_viewers",
+            f"stream:{stream_id}:peak_viewers",
+            f"stream:{stream_id}:total_views",
+            f"stream:{stream_id}:messages",
+            f"stream:{stream_id}:total_donations",
+            f"stream:{stream_id}:donation_amount",
+            f"stream:{stream_id}:watch_time_total",
+            f"stream:{stream_id}:watch_sessions",
+        ]
+
+        for key in keys:
+            await self.redis.delete(key=key)
+
+        logger.info("Keys deleted from redis", extra={"stream_id": stream_id})
+
+    async def get_live_stream_metrics(self, stream_id: UUID) -> dict: 
+        return {
+            "current_viewers": int(await self.redis.get(f"stream:{stream_id}:current_viewers") or 0),
+            "peak_viewers": int(await self.redis.get(f"stream:{stream_id}:peak_viewers") or 0),
+            "total_views": int(await self.redis.get(f"stream:{stream_id}:total_views") or 0),
+            "messages": int(await self.redis.get(f"stream:{stream_id}:messages") or 0),
+            "total_donations": int(await self.redis.get(f"stream:{stream_id}:total_donations") or 0),
+            "donation_amount": Decimal(
+                await self.redis.get(f"stream:{stream_id}:donation_amount") or "0"
+            ),
+            "avg_watch_time": await self.get_avg_watch_time(stream_id),
+        }
