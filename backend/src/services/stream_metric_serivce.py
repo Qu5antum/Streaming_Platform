@@ -2,7 +2,6 @@ from uuid import UUID
 from decimal import Decimal
 
 from src.database.db import AsyncSession
-from src.database.models import User
 from src.repositories.stream_metric_repository import StreamMetricRepository
 from src.redis.redis_service import RedisService
 

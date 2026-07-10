@@ -160,7 +160,7 @@ class AuthService:
         
         logger.info(
             "User inserted in db",
-            extra={"username": str(user.username)}
+            extra={"username": str(new_user.id)}
         )
         
         return {"detail": "The user has been successfully registered"}       
