@@ -33,10 +33,11 @@ class BaseRepository(AbstractRepository):
             await self.session.flush()
             await self.session.refresh(new_object)
 
-            return new_object
         except:
             await self.session.rollback()
             raise
+
+        return new_object
 
     async def get(self, id: UUID):
         obj = await self.session.get(self.model, id)

@@ -34,7 +34,7 @@ services:
 
   backend:
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile
     container_name: streaming_app_backend
     restart: unless-stopped
@@ -58,13 +58,14 @@ services:
       REFRESH_TOKEN_EXPIRE_DAYS: ${REFRESH_TOKEN_EXPIRE_DAYS:-7}
       APP_NAME: ${APP_NAME:-Streaming_Platform}
       DEBUG: ${DEBUG:-True}
+    command: sh -c "alembic upgrade head && uvicorn src.main:app --host 0.0.0.0 --port 8000"
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/_info')\""]
       interval: 10s
       timeout: 5s
       retries: 5
     volumes:
-      - .:/app
+      - ./backend:/app
 
 volumes:
   pg_data:

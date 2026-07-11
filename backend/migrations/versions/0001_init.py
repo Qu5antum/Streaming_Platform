@@ -2,7 +2,7 @@
 
 Revision ID: 0001
 Revises: 
-Create Date: 2026-07-01 21:58:09.996336
+Create Date: 2026-07-11 17:18:00.785018
 
 """
 from typing import Sequence, Union
@@ -50,7 +50,7 @@ def upgrade() -> None:
     op.create_table('followers',
     sa.Column('streamer_id', sa.UUID(), nullable=False),
     sa.Column('follower_id', sa.UUID(), nullable=False),
-    sa.Column('followed_at', sa.DateTime(), nullable=False),
+    sa.Column('followed_at', sa.DateTime(timezone=True), nullable=False),
     sa.Column('id', sa.UUID(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
@@ -69,7 +69,7 @@ def upgrade() -> None:
     sa.Column('stream_key', sa.String(), nullable=False),
     sa.Column('status', sa.Enum('OFFLINE', 'LIVE', 'ENDED', name='status'), nullable=False),
     sa.Column('started_at', sa.DateTime(timezone=True), nullable=True),
-    sa.Column('ended_at', sa.DateTime(), nullable=True),
+    sa.Column('ended_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('streamer_id', sa.UUID(), nullable=False),
     sa.Column('id', sa.UUID(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
@@ -116,10 +116,26 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['category_id'], ['categories.id'], ),
     sa.ForeignKeyConstraint(['stream_id'], ['streams.id'], )
     )
+    op.create_table('stream_messages',
+    sa.Column('stream_id', sa.UUID(), nullable=False),
+    sa.Column('sender_id', sa.UUID(), nullable=False),
+    sa.Column('content', sa.String(), nullable=False),
+    sa.Column('id', sa.UUID(), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
+    sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
+    sa.ForeignKeyConstraint(['sender_id'], ['users.id'], ),
+    sa.ForeignKeyConstraint(['stream_id'], ['streams.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_stream_messages_created_at'), 'stream_messages', ['created_at'], unique=False)
+    op.create_index(op.f('ix_stream_messages_sender_id'), 'stream_messages', ['sender_id'], unique=False)
+    op.create_index(op.f('ix_stream_messages_stream_id'), 'stream_messages', ['stream_id'], unique=False)
     op.create_table('stream_metrics',
     sa.Column('stream_id', sa.UUID(), nullable=False),
     sa.Column('total_views', sa.Integer(), nullable=False),
     sa.Column('total_messages', sa.Integer(), nullable=False),
+    sa.Column('total_donations', sa.Integer(), nullable=False),
+    sa.Column('donation_amount', sa.Numeric(precision=10, scale=2), nullable=False),
     sa.Column('peak_viewers', sa.Integer(), nullable=False),
     sa.Column('avg_watch_time', sa.Integer(), nullable=False),
     sa.Column('id', sa.UUID(), nullable=False),
@@ -139,6 +155,10 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_stream_metrics_stream_id'), table_name='stream_metrics')
     op.drop_index(op.f('ix_stream_metrics_created_at'), table_name='stream_metrics')
     op.drop_table('stream_metrics')
+    op.drop_index(op.f('ix_stream_messages_stream_id'), table_name='stream_messages')
+    op.drop_index(op.f('ix_stream_messages_sender_id'), table_name='stream_messages')
+    op.drop_index(op.f('ix_stream_messages_created_at'), table_name='stream_messages')
+    op.drop_table('stream_messages')
     op.drop_table('stream_categories')
     op.drop_index(op.f('ix_donations_stream_id'), table_name='donations')
     op.drop_index(op.f('ix_donations_sender_id'), table_name='donations')

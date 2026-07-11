@@ -53,5 +53,3 @@ async def refresh(
     auth_service: AuthService = Depends(get_auth_service)
 ):
     return await auth_service.refresh_token(refresh_token=token)
-
-

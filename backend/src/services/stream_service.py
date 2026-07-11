@@ -137,7 +137,7 @@ class StreamService:
         return stream
 
     async def start_stream_by_stream_key(self, stream_publish: PublishStream, user: User) -> StreamOut:
-        # TODO add stream metric and notification for followers with redis
+        # TODO add notification for followers with redis
         stream = await self.stream_repo.get_stream_by_key(stream_key=stream_publish.stream_key)
 
         if not stream:

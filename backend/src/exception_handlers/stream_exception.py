@@ -38,6 +38,12 @@ class InvalidStreamStateException(BaseAppException):
 
 
 class StreamMetricNotFoundException(BaseAppException):
-    """Ошибка если метрикик стрима не найдены"""
+    """Ошибка если метрики стрима не найдены"""
     def __init__(self, message: str):
         super().__init__(message, status_code=404)
+
+
+class InvalidStreamStatusException(BaseAppException):
+    """Ошибка если статус стрима неверный"""
+    def __init__(self, message: str):
+        super().__init__(message, status_code=400)

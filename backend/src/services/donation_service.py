@@ -8,7 +8,7 @@ from src.repositories.donation_repository import DonationRepository
 from src.repositories.stream_repository import StreamRepository
 from .stream_metric_serivce import StreamMetricService
 from src.api.schemas.donation_schema import DonationRequest, DonationResponse
-from src.exception_handlers.stream_exception import StreamNotFoundException, InvalidStreamStateException, StreamNotBelongToUser
+from src.exception_handlers.stream_exception import StreamNotFoundException, InvalidStreamStatusException, StreamNotBelongToUser
 from src.exception_handlers.db_exception import DatabaseException
 
 logger = logging.getLogger("donation")
@@ -32,13 +32,13 @@ class DonationService:
 
             raise StreamNotFoundException("Stream not found")
         
-        if stream.status == Status.OFFLINE or stream.status == Status.ENDED:
+        if stream.status != Status.LIVE:
             logger.warning(
                 "Stream is not live",
                 extra={"stream_id": stream_id}
             )
 
-            raise InvalidStreamStateException("Invalid stream status, you can't donate")
+            raise InvalidStreamStatusException("Invalid stream status, you can't donate")
         
         try:
             new_donation = await self.donation_repo.create(
@@ -60,7 +60,7 @@ class DonationService:
             raise DatabaseException("Database Error")
         
         logger.info(
-            "Donation inserted to database",
+            "Registered donation to stream metric service",
             extra={"donation_id": new_donation.id}
         )
 
@@ -70,7 +70,7 @@ class DonationService:
         )
 
         logger.info(
-            "Registered donation to stream metric service",
+            "Donation inserted to database",
             extra={"donation_id": new_donation.id}
         )
 
