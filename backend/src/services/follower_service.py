@@ -106,7 +106,7 @@ class FollowerService:
         
         return {"detail": "Unfollowed successfully"}
 
-    async def get_my_follwers(self, user: User) -> list[FollowResponse]:
+    async def get_my_followers(self, user: User) -> list[FollowResponse]:
         # Todo implement redis service
         followers = await self.follower_repo.get_user_followers(streamer_id=user.id)
 
