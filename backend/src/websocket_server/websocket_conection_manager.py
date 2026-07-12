@@ -1,7 +1,8 @@
 import asyncio
 import logging
+from uuid import UUID
+from typing import Dict, Set
 from websockets.asyncio.server import ServerConnection
-from websockets.exceptions import ConnectionClosed
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("conection_manager")
@@ -9,39 +10,50 @@ logger = logging.getLogger("conection_manager")
 
 class ConnectionManager:
     def __init__(self):
-        # Store active connections in a set for O(1) tracking
-        self.active_connections: set[ServerConnection] = set()
+        self.active_connections: Dict[UUID, Set['ServerConnection']] = {}
 
-    async def connect(self, websocket: ServerConnection):
+    async def connect(self, stream_id: UUID, websocket: 'ServerConnection'):
         """Accept and register a new WebSocket connection."""
-        self.active_connections.add(websocket)
+        await websocket.accept()    
 
-        logger.info(f"New client connected. Total connected: {len(self.active_connections)}")
+        if stream_id not in self.active_connections:
+            self.active_connections[stream_id] = set()
 
-    async def disconnect(self, websocket: ServerConnection):
+        self.active_connections[stream_id].add(websocket)      
+
+        viewers_count = len(self.active_connections[stream_id])
+        logger.info(f"New client connected to stream {stream_id}. Channel viewers: {viewers_count}")
+
+    async def disconnect(self, stream_id: UUID, websocket: 'ServerConnection'):
         """Remove a disconnected client from the manager."""
-        self.active_connections.remove(websocket)
+        if stream_id in self.active_connections:
+            self.active_connections[stream_id].discard(websocket)
 
-        logger.info(f"Client disconnected. Total connected: {len(self.active_connections)}")
+            if not self.active_connections[stream_id]:
+                del self.active_connections[stream_id]
 
-    async def send_personal_message(self, message: str, websocket: ServerConnection):
-        """Send a direct message to a single specific client."""
+        logger.info(f"Client disconnected. Active streams remaining: {len(self.active_connections)}")
+
+    async def send_personal_message(self, message: str, websocket: 'ServerConnection'):
+        """Отправка сообщения конкретному пользователю с защитой от обрыва связи."""
         try:
-            await websocket.send(message)
-        except ConnectionClosed:
-            await self.disconnect(websocket)
+            await websocket.send_json(message)  
+        except Exception:
+            pass
 
-    async def broadcast(self, message: str):
+    async def broadcast(self, stream_id: UUID, message: str):
         """Broadcast a message to all currently connected clients simultaneously."""
-        if not self.active_connections:
+        connections = self.active_connections.get(stream_id)
+
+        if not connections:
             return
-
-        logger.info(f"Broadcasting message to {len(self.active_connections)} clients")
         
-        # Use asyncio.gather to send messages concurrently across connections
-        tasks = [
-            self.send_personal_message(message, connection)
-            for connection in self.active_connections
-        ]
+        logger.info(f"Broadcasting message to {len(connections)} clients in stream {stream_id}")
 
-        await asyncio.gather(*tasks, return_exceptions=True)
+        await asyncio.gather(
+            *[
+                self.send_personal_message(message, ws)
+                for ws in list(connections)
+            ],
+            return_exceptions=True 
+        )
