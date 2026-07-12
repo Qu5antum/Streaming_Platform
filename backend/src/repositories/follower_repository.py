@@ -1,4 +1,5 @@
-from sqlalchemy import select
+from sqlalchemy import select, func
+from uuid import UUID
 
 from .base_repository import BaseRepository
 from src.database.models import Follower
@@ -17,3 +18,19 @@ class FollowerRepository(BaseRepository):
         )
 
         return result.scalar_one_or_none()
+    
+    async def get_user_followers(self, streamer_id: UUID):
+        result = await self.session.execute(
+            select(self.model)
+            .where(self.model.streamer_id == streamer_id)
+        )
+
+        return result.scalars().all()
+    
+    async def get_user_followers_amount(self, streamer_id: UUID):
+        result = await self.session.execute(
+            select(func.count(self.model.id))
+            .where(self.model.streamer_id == streamer_id)
+        )
+
+        return result.scalar()

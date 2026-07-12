@@ -46,7 +46,7 @@ class FollowerService:
                 "Follow user error, database error",
                 exc_info=True,
                 extra={
-                    "streamer_id": str(stream_id),
+                    "streamer_id": str(streamer_id),
                     "user_id": str(user.id)
                 }
             )
@@ -56,7 +56,7 @@ class FollowerService:
         logger.info(
             "Successful response, user followed streamer",
             extra={
-                    "streamer_id": str(stream_id),
+                    "streamer_id": str(streamer_id),
                     "user_id": str(user.id)
                 }
         )
@@ -80,7 +80,7 @@ class FollowerService:
             logger.warning(
                 "Follow not found",
                 extra={
-                    "streamer_id": str(stream_id),
+                    "streamer_id": str(streamer_id),
                     "user_id": str(user.id)
                 }
             )
@@ -94,20 +94,41 @@ class FollowerService:
         if not delete_follow:
             logger.warning(
                 "Follow not deleted",
-                extra={"follow_id": follow_id}
+                extra={"follow_id": str(follow.id)}
             )
 
             raise DatabaseException("Follow not deleted, Database error")
         
         logger.info(
-            "Follow successfully deleted"
-            extra={"follow_id": follow_id}
+            "Follow successfully deleted",
+            extra={"follow_id": str(follow.id)}
         )
         
         return {"detail": "Unfollowed successfully"}
 
-    # TODO add get followers method
-    # TODO add get followers amount method
+    async def get_my_follwers(self, user: User) -> list[FollowResponse]:
+        # Todo implement redis service
+        followers = await self.follower_repo.get_user_followers(streamer_id=user.id)
+
+        logger.info(
+            "Successful response of streamer followers",
+            extra={"streamer_id": str(user.id)}
+        )
+
+        return followers
+
+    async def get_followers_amount(self, streamer_id: UUID) -> int:
+        # Todo implement redis service
+        followers_amount = self.follower_repo.get_user_followers_amount(streamer_id=streamer_id)
+
+        logger.info(
+            "Successful response of followers amount",
+            extra={"streamer_id": str(streamer_id)}
+        )
+        
+        return followers_amount
+
+
             
 
 
