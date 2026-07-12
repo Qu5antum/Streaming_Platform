@@ -37,7 +37,6 @@ class StreamRepository(BaseRepository):
             .where(
                 self.model.stream_key == stream_key,
                 self.model.status == Status.OFFLINE
-
             )
         )
 

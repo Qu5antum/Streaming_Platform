@@ -89,6 +89,7 @@ class CategoryService:
         
         logger.info(
             "Category successfully deleted"
+            extra={"category_id": category_id}
         )
         
         return {"detail": "Category deleted"}
