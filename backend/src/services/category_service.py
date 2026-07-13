@@ -56,8 +56,6 @@ class CategoryService:
         
         categories = await self.category_repo.get_all()
 
-        logger.info("Successful response category",)
-
         serialized = [
             CategoryOut.model_validate(category).model_dump(mode="json")
             for category in categories
@@ -70,6 +68,8 @@ class CategoryService:
         )
 
         logger.info("Categories cached in Redis")
+
+        logger.info("Successful response category")
 
         return [
             CategoryOut.model_validate(category)
@@ -88,7 +88,7 @@ class CategoryService:
             raise DatabaseException("Category not deleted, Database error")
         
         logger.info(
-            "Category successfully deleted"
+            "Category successfully deleted",
             extra={"category_id": category_id}
         )
         
