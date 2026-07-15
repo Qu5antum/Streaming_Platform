@@ -11,6 +11,7 @@ from src.api.endpoints.user_endpoint import user_route
 from src.api.endpoints.category_endpoint import category_route
 from src.api.endpoints.stream_endpoint import stream_route
 from src.api.endpoints.donation_endpoint import donation_route
+from src.api.endpoints.stream_message_endpoint import message_route
 from src.core.config import settings
 
 setup_logging()
@@ -50,6 +51,7 @@ app.include_router(user_route)
 app.include_router(category_route)
 app.include_router(stream_route)
 app.include_router(donation_route)
+app.include_router(message_route)
 
 
 @app.get("/_info", status_code=200)

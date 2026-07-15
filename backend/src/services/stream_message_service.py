@@ -68,6 +68,12 @@ class StreamMessageService:
             extra={"stream_id": str(stream_id)}
         )
 
+        await self.redis.delete(
+            f"stream:{stream_id}:messages"
+        )
+
+        logger.info("Old key of stream messages deleted from Redis")
+
         await self.stream_metric_service.increment_messages(
             stream_id=stream_id
         )
@@ -127,12 +133,6 @@ class StreamMessageService:
         )
 
         logger.info("Messages cached in Redis")
-
-        await self.redis.delete(
-            f"stream:{stream_id}:messages"
-        )
-
-        logger.info("Old key of stream messages deleted from Redis")
 
         return [
             MessageResponse.model_validate(message)
