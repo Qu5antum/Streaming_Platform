@@ -82,14 +82,14 @@ class CategoryService:
         if not delete_category:
             logger.warning(
                 "Category not deleted",
-                extra={"category_id": category_id}
+                extra={"category_id": str(category_id)}
             )
 
             raise DatabaseException("Category not deleted, Database error")
         
         logger.info(
             "Category successfully deleted",
-            extra={"category_id": category_id}
+            extra={"category_id": str(category_id)}
         )
         
         return {"detail": "Category deleted"}

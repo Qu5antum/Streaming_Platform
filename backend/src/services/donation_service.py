@@ -61,7 +61,7 @@ class DonationService:
         
         logger.info(
             "Registered donation to stream metric service",
-            extra={"donation_id": new_donation.id}
+            extra={"donation_id": str(new_donation.id)}
         )
 
         await self.stream_metric_serivce.register_donation(
@@ -71,7 +71,7 @@ class DonationService:
 
         logger.info(
             "Donation inserted to database",
-            extra={"donation_id": new_donation.id}
+            extra={"donation_id": str(new_donation.id)}
         )
 
         return new_donation

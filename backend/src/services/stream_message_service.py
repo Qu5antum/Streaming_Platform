@@ -98,7 +98,7 @@ class StreamMessageService:
 
             raise InvalidStreamStatusException("Stream is not live")
         
-        cached_data = await self.redis.set(f"stream:{stream_id}:messages")
+        cached_data = await self.redis.get(f"stream:{stream_id}:messages")
 
         if cached_data: 
             logger.info("Messages fetched from Redis cache")
@@ -112,7 +112,7 @@ class StreamMessageService:
 
         logger.info(
             "Successful response of messages by stream id",
-            extra={"stream_id": stream_id}
+            extra={"stream_id": str(stream_id)}
         )
 
         serialized = [
@@ -121,12 +121,18 @@ class StreamMessageService:
         ]
 
         await self.redis.set(
-            "messages:all",
+            f"stream:{stream_id}:messages",
             json.dumps(serialized),
             expire_seconds=300
         )
 
         logger.info("Messages cached in Redis")
+
+        await self.redis.delete(
+            f"stream:{stream_id}:messages"
+        )
+
+        logger.info("Old key of stream messages deleted from Redis")
 
         return [
             MessageResponse.model_validate(message)
