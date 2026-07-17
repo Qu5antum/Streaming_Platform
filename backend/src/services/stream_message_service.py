@@ -138,6 +138,3 @@ class StreamMessageService:
             MessageResponse.model_validate(message)
             for message in messages
         ]
-        
-            
-

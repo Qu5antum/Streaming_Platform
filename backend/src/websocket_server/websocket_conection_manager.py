@@ -35,25 +35,24 @@ class ConnectionManager:
         logger.info(f"Client disconnected. Active streams remaining: {len(self.active_connections)}")
 
     async def send_personal_message(self, message: str, websocket: 'ServerConnection'):
-        """Отправка сообщения конкретному пользователю с защитой от обрыва связи."""
+        """Sending a message to a specific user with protection against connection loss."""
         try:
             await websocket.send_json(message)  
+            return True
         except Exception:
-            pass
+            return False
 
     async def broadcast(self, stream_id: UUID, message: str):
         """Broadcast a message to all currently connected clients simultaneously."""
-        connections = self.active_connections.get(stream_id)
+        connections = list(self.active_connections.get(stream_id, ()))
 
         if not connections:
             return
-        
-        logger.info(f"Broadcasting message to {len(connections)} clients in stream {stream_id}")
 
-        await asyncio.gather(
-            *[
-                self.send_personal_message(message, ws)
-                for ws in list(connections)
-            ],
-            return_exceptions=True 
+        results = await asyncio.gather(
+            *(self.send_personal_message(message, ws) for ws in connections)
         )
+
+        for ws, success in zip(connections, results):
+            if not success:
+                await self.disconnect(stream_id, ws)

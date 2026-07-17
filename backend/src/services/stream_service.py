@@ -15,6 +15,7 @@ from src.exception_handlers.stream_exception import StreamIsLiveExceptoin, Strea
 from src.exception_handlers.category_exception import SomeCategoryNotFound, CategoryNotFoundException
 from src.exception_handlers.db_exception import DatabaseException
 from src.utils.secret_key import generate_stream_key
+
 from src.redis.redis_service import RedisService
 from .stream_metric_serivce import StreamMetricService
 
@@ -30,7 +31,6 @@ class StreamService:
         self.stream_metric_repo = StreamMetricRepository(session=self.session)
         self.redis = redis_service
         self.stream_metric_serivce = StreamMetricService(session=self.session)
-
 
     async def create_stream(self, user: User, stream: StreamCreate) -> StreamOut:
         user_stream = await self.user_repo.get_user_stream(user_id=user.id)
