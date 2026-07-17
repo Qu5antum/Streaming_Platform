@@ -25,6 +25,7 @@ class StreamMessageService:
         self.redis = redis_service
 
     async def add_new_message(self, stream_id: UUID, user: User, message: MessageRequest) -> MessageResponse:
+        # add redis cache
         stream = await self.stream_repo.get(id=stream_id)
 
         if not stream:

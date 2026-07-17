@@ -110,10 +110,7 @@ class WebSocketService:
         if self.connected_at:
 
             seconds = int(
-                (
-                    datetime.now(timezone.utc)
-                    - self.connected_at
-                ).total_seconds()
+                (datetime.now(timezone.utc) - self.connected_at).total_seconds()
             )
 
             await self.metric_service.register_watch_session(
@@ -145,5 +142,5 @@ class WebSocketService:
             )
 
         finally:
-            await self.manager.disconnect(self.stream_id, self.websocket)
+            await self.disconnect()
             await self.send_viewers_count()
